@@ -6,12 +6,12 @@ if [ "$1" ]; then
     DOCKER="$1"
 fi;
 
-$DOCKER stop xfinity-data-api
-$DOCKER build -t jjknuds/xfinity-data-api "$MY_PATH"
-$DOCKER rm xfinity-data-api
-$DOCKER run -it --name xfinity-data-api -d \
+$DOCKER stop home-temp-logger-api
+$DOCKER build -t jjknuds/home-temp-logger-api "$MY_PATH"
+$DOCKER rm home-temp-logger-api
+$DOCKER run -it --name home-temp-logger-api -d \
 --network knutty-network-ipv6 \
--p 3000:3000 \
+-p 3001:3001 \
 -e TZ="America/Denver" \
 --restart always \
-jjknuds/xfinity-data-api npm start
+jjknuds/home-temp-logger-api npm start
