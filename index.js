@@ -79,7 +79,7 @@ app.post('/record', (req, res, next) => {
     data.date = new Date();
     console.log(`Inserting record for date ${data.date}`);
     
-    tempLogger.insert(data).then((docs) => {
+    tempLogger.insertOne(data).then((docs) => {
         res.statusCode = 201;
         res.send(docs);
     }).catch((err) => {
