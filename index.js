@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
-const monk = require('monk');
+const mongojs = require('mongojs');
 const moment = require('moment');
 const { parse } = require('json2csv');
 var bodyParser = require('body-parser');
@@ -17,61 +17,61 @@ app.use(function(req, res, next) {
 let mongoHost = (process.env.DB_HOST);
 let database = (process.env.DATABASE);
 let collectionName = (process.env.DB_COLLECTION);
-let mongoConnectionString = `mongodb://${mongoHost}/${database}`;
-var db = monk(mongoConnectionString);
-var tempLogger = db.get(collectionName);
+let connectionString = `mongodb://${mongoHost}/${database}`;
+var db = mongojs(connectionString, [collectionName]);
+const temps = db.collection(collectionName)
 
 let dateFormat = "YYYY-MM-DD";
 let hourFormat = "HH:mm:ss";
 
-db.then(() => {
-    console.log(`${moment().toString()} connected to database ${mongoConnectionString}`);
+db.on('error', function (err) {
+    console.log('database error', err)
 })
-.catch((err) => {
-    console.log(`${moment().toString()} FAILED to connect to ${mongoConnectionString}`);
-});
 
+db.on('connect', function () {
+    console.log('database connected')
+})
 
-function compare(a, b) {
-    var comparison = 0;
-    if ( a.timestamp < b.timestamp ){
-        comparison = -1;
-    } else if ( a.timestamp > b.timestamp ){
-        comparison = 1;
-    }
+// function compare(a, b) {
+//     var comparison = 0;
+//     if ( a.timestamp < b.timestamp ){
+//         comparison = -1;
+//     } else if ( a.timestamp > b.timestamp ){
+//         comparison = 1;
+//     }
     
-    return comparison;
-}
+//     return comparison;
+// }
 
 var port = (process.env.PORT || '3001');
 app.use(bodyParser.json());
 
-app.get('/', (req, res, next) => {
+// app.get('/', (req, res, next) => {
 
-    var options = {fields: ['-devices', '-_id'], sort : {date: 1}};
+//     var options = {fields: ['-devices', '-_id'], sort : {date: 1}};
 
-    if (req.query.lastCount) {
-        options.limit = parseInt(req.query.lastCount);
-        options.sort = {date: -1};
-    }
+//     if (req.query.lastCount) {
+//         options.limit = parseInt(req.query.lastCount);
+//         options.sort = {date: -1};
+//     }
 
-    if (req.query.usageOnly) {
-        options.fields = ['-_id', 'date', 'totalUsage'];
-    } 
+//     if (req.query.usageOnly) {
+//         options.fields = ['-_id', 'date', 'totalUsage'];
+//     } 
 
-    tempLogger.find({}, options).then((docs) => {
-        // docs.sort(compare);
+//     tempLogger.find({}, options).then((docs) => {
+//         // docs.sort(compare);
         
-        if (req.query.csv) {
-            let keys = Object.keys(docs[0]);
-            let csv = parse(docs, {keys});
-            res.send(csv);
-        } else {
-            res.send(docs);
-        }
+//         if (req.query.csv) {
+//             let keys = Object.keys(docs[0]);
+//             let csv = parse(docs, {keys});
+//             res.send(csv);
+//         } else {
+//             res.send(docs);
+//         }
         
-    });
-});
+//     });
+// });
 
 
 app.post('/record', (req, res, next) => {
@@ -79,14 +79,18 @@ app.post('/record', (req, res, next) => {
     data.date = new Date();
     console.log(`Inserting record for date ${data.date}`);
     
-    tempLogger.insertOne(data).then((docs) => {
-        res.statusCode = 201;
-        res.send(docs);
-    }).catch((err) => {
-        console.log('There was a problem adding the information to the database.');
-        console.log(err);
-        res.statusCode = 500;
-        res.send('Failed to save data in database. See logs');
+    temps.insert(data, function (error) {
+
+        if (error) {
+            console.log('There was a problem adding the information to the database.');
+            console.log(error);
+            res.statusCode = 500;
+            res.send('Failed to save data in database. See logs');
+        } else {
+            res.statusCode = 201;
+            res.send({success: true});
+        }
+
     });
 
 });
