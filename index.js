@@ -21,8 +21,7 @@ let connectionString = `mongodb://${mongoHost}/${database}`;
 var db = mongojs(connectionString, [collectionName]);
 const temps = db.collection(collectionName)
 
-let dateFormat = "YYYY-MM-DD";
-let hourFormat = "HH:mm:ss";
+let dateFormat = "YYYY-MM-DD HH:mm:ss";
 
 db.on('error', function (err) {
     console.log('database error', err)
@@ -46,32 +45,53 @@ db.on('connect', function () {
 var port = (process.env.PORT || '3001');
 app.use(bodyParser.json());
 
-// app.get('/', (req, res, next) => {
+app.get('/', (req, res, next) => {
 
-//     var options = {fields: ['-devices', '-_id'], sort : {date: 1}};
+    var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "date": 1};
+    // options = {};
 
-//     if (req.query.lastCount) {
-//         options.limit = parseInt(req.query.lastCount);
-//         options.sort = {date: -1};
-//     }
+    // if (req.query.lastCount) {
+    //     options.limit = parseInt(req.query.lastCount);
+    //     options.sort = {date: -1};
+    // }
 
-//     if (req.query.usageOnly) {
-//         options.fields = ['-_id', 'date', 'totalUsage'];
-//     } 
+    // if (req.query.usageOnly) {
+    //     options.fields = ['-_id', 'date', 'totalUsage'];
+    // } 
 
-//     tempLogger.find({}, options).then((docs) => {
-//         // docs.sort(compare);
-        
-//         if (req.query.csv) {
-//             let keys = Object.keys(docs[0]);
-//             let csv = parse(docs, {keys});
-//             res.send(csv);
-//         } else {
-//             res.send(docs);
-//         }
-        
-//     });
-// });
+    temps.find({}, options).sort({date: 1}, function (err, docs) {
+        if (err) {
+            console.log('There was a problem querying the database.');
+            console.log(err);
+            res.statusCode = 500;
+            res.send('Failed to query database. See logs');
+        } else {
+            var info = docs;
+
+            info = docs.map(obj => {
+                var temp = Math.round(obj.CurrentTemperature * 10) / 10;
+                if(req.query.format.toLowerCase() == "f") {
+                    temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
+                }
+
+                var m = moment(obj.date);
+
+                return {...obj, CurrentTemperature: temp, date: m.format(dateFormat)};
+              });
+
+            
+
+            if (req.query.csv) {
+                let keys = Object.keys(info);
+                let csv = parse(info, {keys});
+                res.send(csv);
+            } else {
+                res.send(info);
+            }
+            
+        }
+    });
+});
 
 
 app.post('/record', (req, res, next) => {
