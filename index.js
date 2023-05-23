@@ -47,7 +47,7 @@ app.use(bodyParser.json());
 
 app.get('/', (req, res, next) => {
 
-    var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "date": 1};
+    var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1};
     // options = {};
 
     // if (req.query.lastCount) {
@@ -69,10 +69,10 @@ app.get('/', (req, res, next) => {
             var info = docs;
 
             info = docs.map(obj => {
-                var temp = Math.round(obj.CurrentTemperature * 10) / 10;
-                if(req.query.format.toLowerCase() == "f") {
-                    temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
-                }
+                // var temp = Math.round(obj.CurrentTemperature * 10) / 10;
+                // if(req.query.format.toLowerCase() == "f") {
+                //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
+                // }
 
                 var m = moment(obj.date);
 
@@ -96,7 +96,8 @@ app.get('/', (req, res, next) => {
 
 app.post('/record', (req, res, next) => {
     var data = req.body;
-    data.date = new Date();
+    data.timestamp = new Date();
+    data.CurrentTemperature = Math.round((data.CurrentTemperature * 9/5) + 32);
     console.log(`Inserting record for date ${data.date}`);
     
     temps.insert(data, function (error) {
