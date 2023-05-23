@@ -97,7 +97,7 @@ app.get('/', (req, res, next) => {
 app.post('/record', (req, res, next) => {
     var data = req.body;
     data.timestamp = new Date();
-    data.CurrentTemperature = Math.round((data.CurrentTemperature * 9/5) + 32);
+    // data.CurrentTemperature = Math.round((data.CurrentTemperature * 9/5) + 32); // no longer needed as we are handling this in node red
     console.log(`Inserting record for date ${data.date}`);
     
     temps.insert(data, function (error) {
