@@ -76,7 +76,7 @@ app.get('/', (req, res, next) => {
 
                 var m = moment(obj.date);
 
-                return {...obj, CurrentTemperature: temp, date: m.format(dateFormat)};
+                return {...obj, CurrentTemperature: obj.CurrentTemperature, date: m.format(dateFormat)};
               });
 
             
