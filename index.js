@@ -48,18 +48,25 @@ app.use(bodyParser.json());
 app.get('/', (req, res, next) => {
 
     var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1};
-    // options = {};
+    var options = {};
+    var filter = {};
+    var sort = {};
+    var limit = 10000000
 
-    // if (req.query.lastCount) {
-    //     options.limit = parseInt(req.query.lastCount);
-    //     options.sort = {date: -1};
-    // }
+    if (req.query.source) {
+        filter.source = encodeURIComponent(req.query.source);
+    }
+
+    if (req.query.limit) {
+        limit = parseInt(req.query.limit);
+        sort = {timestamp: -1};
+    }
 
     // if (req.query.usageOnly) {
     //     options.fields = ['-_id', 'date', 'totalUsage'];
     // } 
 
-    temps.find({}, options).sort({date: 1}, function (err, docs) {
+    temps.find(filter, options).sort(sort).limit(limit , function (err, docs) {
         if (err) {
             console.log('There was a problem querying the database.');
             console.log(err);
@@ -76,7 +83,7 @@ app.get('/', (req, res, next) => {
 
                 var m = moment(obj.date);
 
-                return {...obj, CurrentTemperature: obj.CurrentTemperature, date: m.format(dateFormat)};
+                return {...obj, CurrentTemperature: obj.CurrentTemperature, localDate: m.format(dateFormat)};
               });
 
             
