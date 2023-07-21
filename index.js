@@ -81,7 +81,7 @@ app.get('/', (req, res, next) => {
                 //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
                 // }
 
-                var m = moment(obj.date);
+                var m = moment(obj.timestamp);
 
                 return {...obj, CurrentTemperature: obj.CurrentTemperature, localDate: m.format(dateFormat)};
               });
