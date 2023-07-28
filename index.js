@@ -47,14 +47,90 @@ app.use(bodyParser.json());
 
 app.get('/', (req, res, next) => {
 
+    // var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1};
+    var options = {};
+    var filter = {};
+    var sort = {};
+    var limit = 10000000
+
+
+    if (req.query.limit) {
+        limit = parseInt(req.query.limit);
+        sort = {timestamp: -1};
+    }
+
+    // if (req.query.usageOnly) {
+    //     options.fields = ['-_id', 'date', 'totalUsage'];
+    // } 
+    console.log("YO DOG");
+
+    temps.find(filter, options).sort(sort).limit(limit , function (err, docs) {
+        if (err) {
+            console.log('There was a problem querying the database.');
+            console.log(err);
+            res.statusCode = 500;
+            res.send('Failed to query database. See logs');
+        } else {
+            var info = docs;
+
+            info = docs.map(obj => {
+                // var temp = Math.round(obj.CurrentTemperature * 10) / 10;
+                // if(req.query.format.toLowerCase() == "f") {
+                //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
+                // }
+
+                var m = moment(obj.timestamp);
+
+                return {...obj, CurrentTemperature: obj.CurrentTemperature, localDate: m.format(dateFormat)};
+              });
+
+            
+
+            if (req.query.csv) {
+                let keys = Object.keys(info);
+                let csv = parse(info, {keys});
+                res.send(csv);
+            } else if(req.query.jschart) {
+                
+                let series = {};
+                
+                docs.forEach(d => {
+                    if (series[d.source] !== undefined) {
+                        series[d.source].push({x: d.timestamp, y: d.CurrentTemperature});
+                    } else {
+                        series[d.source] = [{x: d.timestamp, y: d.CurrentTemperature}];
+                    }
+                });
+
+                let s = [];
+
+                for (const key in series) {
+                    if (Object.hasOwnProperty.call(series, key)) {
+                        const element = series[key];
+                        s.push({name: key, points: element});
+                        
+                    }
+                }
+
+                res.send(s);
+            } else {
+                res.send(info);
+            }
+            
+        }
+    });
+});
+
+app.get('/:source', (req, res, next) => {
+
     var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1};
     var options = {};
     var filter = {};
     var sort = {};
     var limit = 10000000
 
-    if (req.query.source) {
-        filter.source = encodeURIComponent(req.query.source);
+    if (req.params.source) {
+        filter.source = encodeURIComponent(req.params.source);
     }
 
     if (req.query.limit) {
