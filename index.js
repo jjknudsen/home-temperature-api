@@ -74,28 +74,8 @@ app.get('/', (req, res, next) => {
                 let csv = parse(info, { keys });
                 res.send(csv);
             } else if (req.query.jschart) {
-
-                let series = {};
-
-                docs.forEach(d => {
-                    if (series[d.source] !== undefined) {
-                        series[d.source].push({ x: d.timestamp, y: d.CurrentTemperature });
-                    } else {
-                        series[d.source] = [{ x: d.timestamp, y: d.CurrentTemperature }];
-                    }
-                });
-
-                let s = [];
-
-                for (const key in series) {
-                    if (Object.hasOwnProperty.call(series, key)) {
-                        const element = series[key];
-                        s.push({ name: key, points: element });
-
-                    }
-                }
-
-                res.send(s);
+                let jschart = prepForChart(info);
+                res.send(jschart);
             } else {
                 res.send(info);
             }
@@ -139,6 +119,9 @@ app.get('/:source', (req, res, next) => {
                 let keys = Object.keys(info);
                 let csv = parse(info, { keys });
                 res.send(csv);
+            } else if (req.query.jschart) {
+                let jschart = prepForChart(info);
+                res.send(jschart);
             } else {
                 res.send(info);
             }
@@ -169,6 +152,30 @@ app.post('/record', (req, res, next) => {
     });
 
 });
+
+function prepForChart(docs) {
+    let series = {};
+
+    docs.forEach(d => {
+        if (series[d.source] !== undefined) {
+            series[d.source].push({ x: d.timestamp, y: d.CurrentTemperature });
+        } else {
+            series[d.source] = [{ x: d.timestamp, y: d.CurrentTemperature }];
+        }
+    });
+
+    let s = [];
+
+    for (const key in series) {
+        if (Object.hasOwnProperty.call(series, key)) {
+            const element = series[key];
+            s.push({ name: key, points: element });
+
+        }
+    }
+
+    return s;
+}
 
 function processGet(docs) {
     let info = docs.map(obj => {
