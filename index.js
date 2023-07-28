@@ -8,7 +8,7 @@ var bodyParser = require('body-parser');
 
 const app = express();
 app.use(morgan('combined'));
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
@@ -38,7 +38,7 @@ db.on('connect', function () {
 //     } else if ( a.timestamp > b.timestamp ){
 //         comparison = 1;
 //     }
-    
+
 //     return comparison;
 // }
 
@@ -56,49 +56,32 @@ app.get('/', (req, res, next) => {
 
     if (req.query.limit) {
         limit = parseInt(req.query.limit);
-        sort = {timestamp: -1};
+        sort = { timestamp: -1 };
     }
 
-    // if (req.query.usageOnly) {
-    //     options.fields = ['-_id', 'date', 'totalUsage'];
-    // } 
-    console.log("YO DOG");
 
-    temps.find(filter, options).sort(sort).limit(limit , function (err, docs) {
+    temps.find(filter, options).sort(sort).limit(limit, function (err, docs) {
         if (err) {
             console.log('There was a problem querying the database.');
             console.log(err);
             res.statusCode = 500;
             res.send('Failed to query database. See logs');
         } else {
-            var info = docs;
-
-            info = docs.map(obj => {
-                // var temp = Math.round(obj.CurrentTemperature * 10) / 10;
-                // if(req.query.format.toLowerCase() == "f") {
-                //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
-                // }
-
-                var m = moment(obj.timestamp);
-
-                return {...obj, CurrentTemperature: obj.CurrentTemperature, localDate: m.format(dateFormat)};
-              });
-
-            
+            let info = processGet(docs);
 
             if (req.query.csv) {
                 let keys = Object.keys(info);
-                let csv = parse(info, {keys});
+                let csv = parse(info, { keys });
                 res.send(csv);
-            } else if(req.query.jschart) {
-                
+            } else if (req.query.jschart) {
+
                 let series = {};
-                
+
                 docs.forEach(d => {
                     if (series[d.source] !== undefined) {
-                        series[d.source].push({x: d.timestamp, y: d.CurrentTemperature});
+                        series[d.source].push({ x: d.timestamp, y: d.CurrentTemperature });
                     } else {
-                        series[d.source] = [{x: d.timestamp, y: d.CurrentTemperature}];
+                        series[d.source] = [{ x: d.timestamp, y: d.CurrentTemperature }];
                     }
                 });
 
@@ -107,8 +90,8 @@ app.get('/', (req, res, next) => {
                 for (const key in series) {
                     if (Object.hasOwnProperty.call(series, key)) {
                         const element = series[key];
-                        s.push({name: key, points: element});
-                        
+                        s.push({ name: key, points: element });
+
                     }
                 }
 
@@ -116,14 +99,14 @@ app.get('/', (req, res, next) => {
             } else {
                 res.send(info);
             }
-            
+
         }
     });
 });
 
 app.get('/:source', (req, res, next) => {
 
-    var options = {"source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1};
+    // var options = { "source": 1, "CurrentTemperature": 1, "_id": 0, "timestamp": 1 };
     var options = {};
     var filter = {};
     var sort = {};
@@ -135,43 +118,31 @@ app.get('/:source', (req, res, next) => {
 
     if (req.query.limit) {
         limit = parseInt(req.query.limit);
-        sort = {timestamp: -1};
+        sort = { timestamp: -1 };
     }
 
     // if (req.query.usageOnly) {
     //     options.fields = ['-_id', 'date', 'totalUsage'];
     // } 
 
-    temps.find(filter, options).sort(sort).limit(limit , function (err, docs) {
+    temps.find(filter, options).sort(sort).limit(limit, function (err, docs) {
         if (err) {
             console.log('There was a problem querying the database.');
             console.log(err);
             res.statusCode = 500;
             res.send('Failed to query database. See logs');
         } else {
-            var info = docs;
 
-            info = docs.map(obj => {
-                // var temp = Math.round(obj.CurrentTemperature * 10) / 10;
-                // if(req.query.format.toLowerCase() == "f") {
-                //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
-                // }
-
-                var m = moment(obj.timestamp);
-
-                return {...obj, CurrentTemperature: obj.CurrentTemperature, localDate: m.format(dateFormat)};
-              });
-
-            
+            let info = processGet(docs);
 
             if (req.query.csv) {
                 let keys = Object.keys(info);
-                let csv = parse(info, {keys});
+                let csv = parse(info, { keys });
                 res.send(csv);
             } else {
                 res.send(info);
             }
-            
+
         }
     });
 });
@@ -182,7 +153,7 @@ app.post('/record', (req, res, next) => {
     data.timestamp = new Date();
     // data.CurrentTemperature = Math.round((data.CurrentTemperature * 9/5) + 32); // no longer needed as we are handling this in node red
     console.log(`Inserting record for date ${data.date}`);
-    
+
     temps.insert(data, function (error) {
 
         if (error) {
@@ -192,14 +163,29 @@ app.post('/record', (req, res, next) => {
             res.send('Failed to save data in database. See logs');
         } else {
             res.statusCode = 201;
-            res.send({success: true});
+            res.send({ success: true });
         }
 
     });
 
 });
 
+function processGet(docs) {
+    let info = docs.map(obj => {
+        // var temp = Math.round(obj.CurrentTemperature * 10) / 10;
+        // if(req.query.format.toLowerCase() == "f") {
+        //     temp = Math.round((obj.CurrentTemperature * (9/5)) + 32);
+        // }
+
+        var m = moment(obj.timestamp);
+
+        return { ...obj, localDate: m.format(dateFormat) };
+    });
+
+    return info.filter(d => d.CurrentTemperature < 100);
+}
+
 app.listen(port, () =>
-  console.log(`${moment().toString()} Server listening on port ${port.toString()}!`)
+    console.log(`${moment().toString()} Server listening on port ${port.toString()}!`)
 );
- 
+
