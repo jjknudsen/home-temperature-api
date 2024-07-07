@@ -1,14 +1,21 @@
-version: '3.8'
+version: '3'
 
 services:
   nodejs-app:
     build: .
+    environment:
+      TZ: "America/Denver"
     ports:
       - "3001:3001"
     volumes:
       - .:/home/node/app
       - /home/node/app/node_modules
     env_file:
-      - stack.env 
+      - stack.env
     command: ["npm", "start"]
+    restart: always
 
+networks:
+  default:
+    external:
+      name: knutty-docker-ipv6
